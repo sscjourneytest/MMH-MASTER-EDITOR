@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUANTUM SSC - Admin Master Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #0b5ed7;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --reported: #f97316;
+            --edited: #8b5cf6;
+        }
+        body { font-family: 'Inter', sans-serif; background: #f4f7fa; color: #333; }
+
+        /* --- 1. PALETTE & NAVIGATION STYLES --- */
+        .p-item { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; font-weight: 600; font-size: 14px; background: white; transition: 0.2s; }
+        .p-active { border: 2px solid var(--primary); background: #e7f1ff; color: var(--primary); }
+        .p-edited { background-color: var(--edited) !important; color: white; border-color: #6d28d9; }
+        .p-reported { background-color: var(--reported) !important; color: white; border-color: #c2410c; }
+        .p-both { background: linear-gradient(135deg, var(--reported) 50%, var(--edited) 50%); color: white; }
+
+        /* --- 2. TEMPLATE MIRROR STYLES (EXACT FROM test-t2-s (7).html) --- */
+        .opt { display: flex; align-items: flex-start; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; background: white; transition: 0.2s; cursor: pointer; }
+        .opt.correct { background-color: #d1e7dd; border-color: var(--success); }
+        .custom-radio { width: 18px; height: 18px; border: 2px solid #adb5bd; border-radius: 50%; margin-right: 12px; margin-top: 3px; flex-shrink: 0; }
+        .correct .custom-radio { border-color: var(--success); background: radial-gradient(var(--success) 40%, transparent 50%); }
+        .sol-img-styled { max-width:100%; border-radius:8px; border:1px solid #ddd; margin-top:10px; display: block; }
+        
+        /* ✅ MathJax & Table Overflow Fixes */
+        mjx-container { max-width: 100% !important; overflow: visible !important; }
+        mjx-container, mjx-math, mjx-mtext { word-break: normal !important; overflow-wrap: normal !important; }
+        mjx-container[display="true"] { display: block !important; max-width: 100% !important; }
+        mjx-math { white-space: normal !important; }
+        .qtext, #qtext, .opt-text, #explanation { overflow-wrap: break-word !important; word-break: normal !important; }
+
+        .sol-img-container { width: 100%; display: flex; justify-content: flex-start; padding: 0; }
+
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 15px 0; border-radius: 8px; }
+        .table-wrapper table { width: 100%; border-collapse: collapse; background-color: #ffffff; font-size: 14px; border: 1px solid #dee2e6; }
+        .table-wrapper th { background-color: #f8f9fa; padding: 12px 8px; border: 1px solid #dee2e6; text-align: center; }
+        .table-wrapper td { padding: 10px 8px; border: 1px solid #dee2e6; text-align: center; vertical-align: middle; }
+
+        /* --- 3. UI LAYOUT STYLES --- */
+        @media (max-width: 1024px) {
+            #sidebar { display: none; position: fixed; right: 0; top: 0; height: 100%; width: 280px; z-index: 50; background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.1); }
+            #sidebar.open { display: block; }
+        }
+        .invalid-json { border: 2px solid var(--danger) !important; background: #fff5f5; color: var(--danger); }
+        #jsonBox { font-family: 'Fira Code', 'Courier New', monospace; font-size: 13px; line-height: 1.5; }
+    </style>
+
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            chtml: {
+                mtextInheritFont: false,
+                displayAlign: 'left',
+                linebreaks: { allow: true, width: 'container', overflow: 'linebreak' }
+            },
+            options: { skipHtmlTags: ['script', 'style', 'textarea', 'pre'] }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm z-20">
+        <div class="flex items-center gap-4">
+            <div class="flex flex-col">
+                <h1 class="text-lg font-black text-blue-700 leading-none">QUANTUM SSC</h1>
+                <span class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Admin Master v2.0</span>
+            </div>
+            <div class="flex items-center bg-gray-100 rounded-lg px-3 py-1.5 border border-gray-200">
+                <input id="targetQuizId" type="text" placeholder="Enter Quiz ID..." class="bg-transparent outline-none text-sm font-bold w-32 lg:w-64 text-gray-700">
+                <button onclick="fetchQuizData()" class="text-blue-600 hover:text-blue-800 font-black text-xs ml-3 px-2 border-l border-gray-300">FETCH DATA</button>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="openBatchModal()" class="hidden lg:flex items-center gap-2 bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 hover:bg-gray-100">
+                <span>BATCH REPLACE</span>
+            </button>
+            <button id="updateGithubBtn" onclick="prepareUpdate()" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-xs font-black shadow-lg shadow-blue-200 hover:bg-blue-700 hidden uppercase tracking-wider">UPDATE GITHUB</button>
+            <button onclick="toggleSidebar()" class="lg:hidden p-2 bg-gray-100 rounded-md text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+        
+        <section class="flex-1 overflow-y-auto p-4 lg:p-8 bg-gray-50 scroll-smooth">
+            
+            <div id="metaBox" class="max-w-4xl mx-auto mb-8 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-6 bg-blue-600 rounded-full"></div>
+                        <h3 class="font-black text-gray-800 text-sm uppercase">Quiz Configuration</h3>
+                    </div>
+                    <button onclick="toggleMetaEdit()" class="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">EDIT GLOBAL META</button>
+                </div>
+                <div id="metaSummary" class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-[11px] font-extrabold text-gray-500 uppercase tracking-tight"></div>
+                
+                <div id="metaEditor" class="hidden mt-5 pt-5 border-t border-dashed">
+                    <textarea id="metaJsonArea" class="w-full h-40 p-4 border rounded-xl font-mono text-xs bg-gray-50 text-blue-900 outline-none focus:ring-2 ring-blue-500"></textarea>
+                    <div class="flex justify-end mt-3">
+                        <button onclick="saveMetaChanges()" class="bg-green-600 text-white px-6 py-2 rounded-lg text-xs font-black shadow-md">SAVE META CHANGES</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="questionWrapper" class="max-w-4xl mx-auto hidden pb-20">
+                
+                <div class="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden mb-6">
+                    <div class="bg-gray-50 px-8 py-5 border-b flex justify-between items-center">
+                        <div class="qmeta flex items-center gap-3">
+                            <span class="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-black italic shadow-inner">Q.<span id="qindex">0</span></span>
+                            <div id="marking" class="text-[11px] font-black text-gray-400 uppercase tracking-widest"></div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div id="qIdBadge" class="bg-white border px-3 py-1 rounded-full text-[10px] font-bold text-blue-600 shadow-sm"></div>
+                            <button onclick="toggleJsonEditor()" class="p-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-100 hover:scale-105 transition-transform" title="Toggle JSON Editor">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-8 lg:p-12">
+                        <div id="qtext" class="text-xl font-semibold text-gray-800 mb-8 leading-relaxed"></div>
+                        
+                        <div id="questionImage" class="flex justify-center"></div>
+                        
+                        <div id="options" class="mt-10 space-y-4"></div>
+
+                        <div id="explanation" class="mt-12 p-8 bg-green-50 rounded-3xl border border-green-100 hidden"></div>
+                    </div>
+                </div>
+
+                <div id="editorWrapper" class="hidden bg-gray-900 rounded-3xl p-6 border border-gray-700 shadow-2xl transition-all duration-500">
+                    <div class="flex justify-between items-center mb-5">
+                        <div class="flex flex-col">
+                            <span class="text-blue-400 text-[10px] font-black uppercase tracking-widest">Live JSON Object</span>
+                            <span class="text-gray-500 text-[9px] font-bold">Changes update preview instantly on Save</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="resetQuestion()" class="bg-gray-700 text-gray-300 px-4 py-2 rounded-xl text-[10px] font-black hover:bg-red-900 hover:text-white transition-colors">RESET Q</button>
+                            <button onclick="saveQuestionEdit()" class="bg-green-600 text-white px-5 py-2 rounded-xl text-[10px] font-black shadow-lg shadow-green-900/20 hover:bg-green-500">SAVE TO MEMORY</button>
+                        </div>
+                    </div>
+                    <textarea id="jsonBox" spellcheck="false" class="w-full h-[500px] bg-gray-800 text-green-400 p-6 rounded-2xl outline-none border border-gray-700 focus:border-blue-500 shadow-inner scrollbar-thin scrollbar-thumb-gray-600"></textarea>
+                    <div id="jsonError" class="text-red-500 text-[10px] font-black mt-3 flex items-center gap-2 hidden">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>⚠ INVALID JSON: CHECK FOR MISSING COMMAS OR QUOTES</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <aside id="sidebar" class="w-80 border-l bg-white flex flex-col z-30 lg:relative">
+            <div class="p-5 border-b flex justify-between items-center bg-gray-50">
+                <h2 class="font-black text-gray-700 uppercase text-[10px] tracking-widest">Quick Navigation</h2>
+                <div class="flex gap-1.5">
+                    <input id="jumpBox" type="number" class="w-14 border rounded-lg text-xs p-2 text-center font-black outline-none focus:ring-2 ring-blue-500" placeholder="Index">
+                    <button onclick="jumpTo()" class="bg-gray-800 text-white text-[10px] px-3 py-2 rounded-lg font-black hover:bg-black">GO</button>
+                </div>
+            </div>
+            
+            <div id="sectionTabs" class="flex p-3 bg-white gap-1 overflow-x-auto border-b border-gray-100 no-scrollbar"></div>
+
+            <div id="palette" class="flex-1 overflow-y-auto p-5 grid grid-cols-5 gap-2.5 content-start scrollbar-thin"></div>
+            
+            <div class="p-5 border-t bg-gray-50 grid grid-cols-2 gap-3">
+                <div class="flex items-center gap-2 text-[9px] font-black text-gray-500 uppercase"><span class="w-3 h-3 bg-white border border-gray-300 rounded-sm"></span> Normal</div>
+                <div class="flex items-center gap-2 text-[9px] font-black text-gray-500 uppercase"><span class="w-3 h-3 bg-purple-500 rounded-sm"></span> Edited</div>
+                <div class="flex items-center gap-2 text-[9px] font-black text-gray-500 uppercase"><span class="w-3 h-3 bg-orange-500 rounded-sm"></span> Reported</div>
+                <div class="flex items-center gap-2 text-[9px] font-black text-gray-500 uppercase"><span class="w-3 h-3 p-both rounded-sm"></span> Fixed</div>
+            </div>
+        </aside>
+    </main>
+
+    <div id="batchModal" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl">
+            <h3 class="text-sm font-black mb-1 uppercase text-gray-800">Global Search & Replace</h3>
+            <p class="text-[10px] font-bold text-gray-400 mb-6">This affects every single question in the entire JSON file.</p>
+            <div class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-gray-400 ml-1">FIND WORD / STRING</label>
+                    <input id="searchStr" type="text" placeholder="e.g. Inculcate" class="w-full border-2 border-gray-100 p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-gray-400 ml-1">REPLACE WITH</label>
+                    <input id="replaceStr" type="text" placeholder="e.g. Implant" class="w-full border-2 border-gray-100 p-3 rounded-xl text-sm font-bold outline-none focus:border-blue-500">
+                </div>
+                <div class="flex justify-end gap-3 mt-8">
+                    <button onclick="closeBatchModal()" class="text-xs font-black text-gray-400 px-4 py-2">CANCEL</button>
+                    <button onclick="executeBatchReplace()" class="bg-blue-600 text-white text-xs font-black px-6 py-3 rounded-xl shadow-lg shadow-blue-200">EXECUTE REPLACEMENT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="updateModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[70] p-4 backdrop-blur-md">
+        <div class="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl border border-white">
+            <h3 class="font-black text-blue-700 text-2xl mb-2 italic">REVIEW CHANGES</h3>
+            <p class="text-xs font-bold text-gray-400 mb-8">Summary of local edits before GitHub synchronization.</p>
+            <div id="changeLedger" class="max-h-64 overflow-y-auto border-2 border-gray-50 rounded-3xl p-5 bg-gray-50 text-[11px] font-mono mb-8 whitespace-pre-wrap text-blue-900 leading-loose"></div>
+            <div class="flex gap-4">
+                <button onclick="document.getElementById('updateModal').classList.add('hidden')" class="flex-1 bg-gray-100 border p-4 rounded-2xl font-black text-xs text-gray-400">CANCEL</button>
+                <button onclick="pushToGitHub()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-xs shadow-xl shadow-blue-200">CONFIRM & PUSH TO GITHUB</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** * 🟢 1. GLOBAL STATE & CONFIGURATION 
+         */
+        let FULL_QUIZ = null;       // Original fetch from GH
+        let MODIFIED_QUIZ = null;   // The one we edit
+        let QUESTIONS = [];         // Active section array
+        let current = 0;            
+        let currentSection = "";
+        let quizId = "", folderType = "", sha = "", structure = "";
+        let reportedQId = null;     // Extracted from URL ?qid=
+        let editedIds = new Set();  // Track IDs for the ledger
+        let currentLang = "en";
+        let GITHUB_PATH = "";       // Dynamically decided
+
+        const SB_URL = "https://irivrmlfrmujuhvtkout.supabase.co/functions/v1/admin-master-handler"; // 🚨 SET THIS
+
+        function el(id) { return document.getElementById(id); }
+
+        /** * 🟢 2. PATH DECIDER LOGIC (DETO FROM REQUIREMENTS) 
+         */
+        function updatePathLogic(id) {
+            const low = id.toLowerCase();
+            if (low.includes("cgl")) GITHUB_PATH = low.includes("-sub") ? "ssc/cgl/subject" : "ssc/cgl/full-mock";
+            else if (low.includes("chsl")) GITHUB_PATH = low.includes("-sub") ? "ssc/chsl/subject" : "ssc/chsl/full-mock";
+            else if (low.includes("mts")) GITHUB_PATH = low.includes("-sub") ? "ssc/mts/subject" : "ssc/mts/full-mock";
+            else if (low.includes("cpo")) GITHUB_PATH = low.includes("-sub") ? "ssc/cpo/subject" : "ssc/cpo/full-mock";
+            else if (low.includes("steno")) GITHUB_PATH = low.includes("-sub") ? "ssc/steno/subject" : "ssc/steno/full-mock";
+            else if (low.includes("ssc-sub-25")) GITHUB_PATH = "ssc-sub/2025/mocks";
+            else GITHUB_PATH = "others";
+            
+            console.log("Master Path Set To:", GITHUB_PATH);
+        }
+
+        /** * 🟢 3. RENDER ENGINE (IDENTICAL TO TEMPLATE LOGIC) 
+         */
+        function applyBoldHighlight(html) {
+            if (!html || typeof html !== "string") return html;
+            return html.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 800; color: #000;">$1</strong>');
+        }
+
+        const getLangText = (obj) => {
+            if (!obj) return "";
+            const decodeHTML = (html) => {
+                const txt = document.createElement("textarea");
+                txt.innerHTML = html;
+                return txt.value;
+            };
+            let rawText = "";
+            if (typeof obj === "string") {
+                rawText = obj;
+            } else {
+                // Admin always uses bilingual dash view
+                const en = obj.en || "";
+                const hi = obj.hi || "";
+                rawText = en + (en && hi ? "<hr style='border:none; border-top:1px dashed #ccc; margin:10px 0;'>" : "") + hi;
+            }
+            return decodeHTML(rawText);
+        };
+
+        function renderQuestion(i) {
+            if (!QUESTIONS || QUESTIONS.length === 0 || !QUESTIONS[i]) return;
+            current = i;
+            const q = QUESTIONS[i];
+
+            // 1. Header Info
+            el("qindex").textContent = i + 1;
+            el("marking").innerHTML = `Marking: <span style="color:var(--success)">+${Number(q.correct_score ?? 1)}</span> / <span style="color:var(--danger)">-${Number(q.negative_score ?? 0.5)}</span>`;
+            el("qIdBadge").textContent = `ID: ${q.id}`;
+
+            // 2. Question Content
+            const qTextEl = el("qtext");
+            qTextEl.innerHTML = applyBoldHighlight(getLangText(q.question));
+
+            // 🖼️ 3. IMAGE RENDER (Manual + Dynamic Logic)
+            const imgBox = el("questionImage");
+            imgBox.innerHTML = "";
+            
+            const pathSegments = GITHUB_PATH.split('/');
+            const imageBasePath = (pathSegments.length >= 2) ? `${pathSegments[0]}/${pathSegments[1]}` : GITHUB_PATH;
+            const cleanIdx = parseInt(String(q.id).slice(1));
+            
+            const dynamicQImg = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imageBasePath}/${quizId}/q-${cleanIdx}-image1.jpg`;
+            const qImgStyle = "max-width:95%; max-height:300px; width:auto; height:auto; display:block; margin:20px auto; border:1px solid #eee; border-radius:12px; object-fit:contain; background:#fff;";
+
+            if (q.question_image && q.question_image.trim() !== "") {
+                imgBox.innerHTML = `<img src="${q.question_image}" style="${qImgStyle}">`;
+            } else {
+                imgBox.innerHTML = `<img src="${dynamicQImg}" style="${qImgStyle} display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">`;
+            }
+
+            // 4. Options Grid
+            const optsContainer = el("options");
+            optsContainer.innerHTML = "";
+            const optionKeys = ["option_1", "option_2", "option_3", "option_4", "option_5"];
+
+            optionKeys.forEach((key, idx) => {
+                if (!q[key]) return;
+                const optionIndex = idx + 1;
+                const isCorrect = String(q.answer) === String(optionIndex);
+
+                const div = document.createElement("div");
+                div.className = `opt ${isCorrect ? 'correct' : ''}`;
+
+                // Option Image Logic
+                const optImgKey = `option_image_${optionIndex}`;
+                const dynamicOptImg = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imageBasePath}/${quizId}/q-${cleanIdx}-image${optionIndex + 1}.jpg`;
+                const optStyle = "max-width:200px; max-height:120px; width:auto; height:auto; border-radius:6px; border:1px solid #f0f0f0; object-fit:contain; margin-top:10px; display:block;";
+
+                let optImgHtml = "";
+                if (q[optImgKey] && q[optImgKey].trim() !== "") {
+                    optImgHtml = `<img src="${q[optImgKey]}" style="${optStyle}">`;
+                } else {
+                    optImgHtml = `<img src="${dynamicOptImg}" style="${optStyle} display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">`;
+                }
+
+                div.innerHTML = `
+                    <div class="custom-radio"></div>
+                    <div class="flex-1">
+                        <div class="opt-text text-sm font-semibold">${applyBoldHighlight(getLangText(q[key]))}</div>
+                        ${optImgHtml}
+                    </div>
+                `;
+                optsContainer.appendChild(div);
+            });
+
+            // 5. Solution (Always Visible)
+            const expBox = el("explanation");
+            expBox.classList.remove('hidden');
+            const dynamicSolImg = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imageBasePath}/${quizId}/q-${cleanIdx}-image6.jpg`;
+
+            const solImgHtml = (q.solution_image && q.solution_image.trim() !== "") 
+                ? `<div class="sol-img-container"><img src="${q.solution_image}" class="sol-img-styled shadow-sm"></div>`
+                : `<div class="sol-img-container"><img src="${dynamicSolImg}" class="sol-img-styled shadow-sm" style="display:none;" onload="this.style.display='block'" onerror="this.style.display='none'"></div>`;
+
+            expBox.innerHTML = `
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Master Solution</span>
+                </div>
+                <div class="text-sm text-gray-700 leading-relaxed">${applyBoldHighlight(getLangText(q.solution_text)) || "No text explanation."}</div>
+                ${solImgHtml}
+            `;
+
+            // 6. Refresh Renderers
+            if (window.MathJax) MathJax.typeset();
+            highlightPalette();
+            
+            // Sync Textarea if open
+            if (!el('editorWrapper').classList.contains('hidden')) {
+                el("jsonBox").value = JSON.stringify(q, null, 2);
+            }
+        }
+
+        /** * 🟢 4. FETCH & DATA MANAGEMENT 
+         */
+        async function fetchQuizData() {
+            quizId = el('targetQuizId').value.trim();
+            if (!quizId) return alert("Quiz ID Missing!");
+            
+            updatePathLogic(quizId);
+
+            try {
+                // Attach Telegram Auth if available
+                const initData = window.Telegram?.WebApp?.initData || "user=%7B%22id%22%3A6880375007%7D";
+                
+                const res = await fetch(SB_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: "GET_QUIZ", quizId, initData })
+                });
+
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                // Load to memory
+                FULL_QUIZ = JSON.parse(JSON.stringify(data.quiz));
+                MODIFIED_QUIZ = data.quiz;
+                sha = data.sha;
+                folderType = data.folderType;
+                structure = data.structure;
+
+                initDashboard();
+            } catch (e) { alert("Fetch Failed: " + e.message); }
+        }
+
+        function initDashboard() {
+            const sections = Object.keys(MODIFIED_QUIZ.sections);
+            currentSection = sections[0];
+            
+            renderSectionTabs(sections);
+            loadSection(currentSection);
+            renderMeta();
+            
+            el('metaBox').classList.remove('hidden');
+            el('questionWrapper').classList.remove('hidden');
+            el('updateGithubBtn').classList.remove('hidden');
+
+            // Handle Deep Link Jump
+            if (reportedQId) jumpToId(reportedQId);
+        }
+
+        function loadSection(name) {
+            currentSection = name;
+            QUESTIONS = (structure === "TIMER") ? MODIFIED_QUIZ.sections[name].questions : MODIFIED_QUIZ.sections[name];
+            renderPalette();
+            renderQuestion(0);
+        }
+
+        /** * 🟢 5. LIVE EDITING LOGIC 
+         */
+        function saveQuestionEdit() {
+            const box = el("jsonBox");
+            const err = el("jsonError");
+            try {
+                const updated = JSON.parse(box.value);
+                
+                // Update active section
+                QUESTIONS[current] = updated;
+                
+                // Track ID for ledger
+                editedIds.add(String(updated.id));
+                
+                // UI feedback
+                err.classList.add('hidden');
+                box.classList.remove('invalid-json');
+                renderQuestion(current);
+                
+                // Auto-save local draft
+                localStorage.setItem(`draft_${quizId}`, JSON.stringify(MODIFIED_QUIZ));
+            } catch (e) {
+                err.classList.remove('hidden');
+                box.classList.add('invalid-json');
+            }
+        }
+
+        function resetQuestion() {
+            const currentId = QUESTIONS[current].id;
+            // Scan FULL_QUIZ for the original object
+            for (let s in FULL_QUIZ.sections) {
+                const qs = (structure === "TIMER") ? FULL_QUIZ.sections[s].questions : FULL_QUIZ.sections[s];
+                const original = qs.find(q => String(q.id) === String(currentId));
+                if (original) {
+                    QUESTIONS[current] = JSON.parse(JSON.stringify(original));
+                    editedIds.delete(String(currentId));
+                    renderQuestion(current);
+                    return;
+                }
+            }
+        }
+
+        function executeBatchReplace() {
+            const s = el('searchStr').value;
+            const r = el('replaceStr').value;
+            if (!s) return;
+
+            const fullString = JSON.stringify(MODIFIED_QUIZ);
+            if (!fullString.includes(s)) return alert("String not found in file.");
+
+            MODIFIED_QUIZ = JSON.parse(fullString.split(s).join(r));
+            loadSection(currentSection);
+            closeBatchModal();
+            alert("Replacement successful across the entire quiz.");
+        }
+
+        /** * 🟢 6. GITHUB SYNCHRONIZATION 
+         */
+        function prepareUpdate() {
+            const ledger = el('changeLedger');
+            ledger.innerHTML = `TARGET: ${folderType.toUpperCase()}/${quizId}\nSHA: ${sha.slice(0,8)}...\n\n`;
+            
+            if (editedIds.size === 0) ledger.innerHTML += "No individual questions changed.\nOnly Global Meta/Config modified.";
+            else {
+                ledger.innerHTML += `MODIFIED QUESTION IDS (${editedIds.size}):\n`;
+                editedIds.forEach(id => ledger.innerHTML += `→ ID ${id}\n`);
+            }
+            
+            el('updateModal').classList.remove('hidden');
+        }
+
+        async function pushToGitHub() {
+            const btn = el('updateGithubBtn');
+            btn.textContent = "UPLOADING TO GITHUB...";
+            btn.disabled = true;
+
+            try {
+                const initData = window.Telegram?.WebApp?.initData || "user=%7B%22id%22%3A6880375007%7D";
+                const res = await fetch(SB_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "UPDATE_QUIZ",
+                        quizId,
+                        updatedData: MODIFIED_QUIZ,
+                        sha,
+                        folderType,
+                        initData
+                    })
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    alert("✅ SUCCESS: Changes pushed to Production!");
+                    location.reload();
+                } else throw new Error(result.error);
+            } catch (e) {
+                alert("❌ FAILED: " + e.message);
+                btn.textContent = "UPDATE GITHUB";
+                btn.disabled = false;
+            }
+        }
+
+        /** * 🟢 7. NAVIGATION HELPERS 
+         */
+        function renderPalette() {
+            const p = el('palette'); p.innerHTML = "";
+            QUESTIONS.forEach((q, i) => {
+                const d = document.createElement('div');
+                d.className = "p-item"; d.textContent = i + 1;
+                d.onclick = () => renderQuestion(i);
+                p.appendChild(d);
+            });
+            highlightPalette();
+        }
+
+        function highlightPalette() {
+            document.querySelectorAll('.p-item').forEach((item, i) => {
+                item.classList.remove('p-active', 'p-edited', 'p-reported', 'p-both');
+                if (i === current) item.classList.add('p-active');
+                
+                const qId = String(QUESTIONS[i].id);
+                const isEdited = editedIds.has(qId);
+                const isReported = (qId === reportedQId);
+
+                if (isEdited && isReported) item.classList.add('p-both');
+                else if (isEdited) item.classList.add('p-edited');
+                else if (isReported) item.classList.add('p-reported');
+            });
+        }
+
+        function renderSectionTabs(sections) {
+            const t = el('sectionTabs'); t.innerHTML = "";
+            sections.forEach(s => {
+                const b = document.createElement('button');
+                b.className = `px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${s === currentSection ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-gray-500 border border-gray-100'}`;
+                b.textContent = s;
+                b.onclick = () => loadSection(s);
+                t.appendChild(b);
+            });
+        }
+
+        function renderMeta() {
+            const summary = el('metaSummary'); summary.innerHTML = "";
+            Object.entries(MODIFIED_QUIZ.meta).forEach(([k, v]) => {
+                if (typeof v !== 'object') {
+                    summary.innerHTML += `<div class="bg-gray-100 p-2 rounded-lg border border-gray-200">
+                        <span class="text-gray-400 block mb-0.5">${k}</span>
+                        <span class="text-gray-800">${v}</span>
+                    </div>`;
+                }
+            });
+            el('metaJsonArea').value = JSON.stringify(MODIFIED_QUIZ.meta, null, 2);
+        }
+
+        function saveMetaChanges() {
+            try {
+                MODIFIED_QUIZ.meta = JSON.parse(el('metaJsonArea').value);
+                renderMeta();
+                el('metaEditor').classList.add('hidden');
+                alert("Meta updated in memory.");
+            } catch (e) { alert("Invalid JSON in Meta Box"); }
+        }
+
+        function jumpToId(id) {
+            for (const sName in MODIFIED_QUIZ.sections) {
+                const qs = (structure === "TIMER") ? MODIFIED_QUIZ.sections[sName].questions : MODIFIED_QUIZ.sections[sName];
+                const idx = qs.findIndex(q => String(q.id) === String(id));
+                if (idx !== -1) {
+                    loadSection(sName);
+                    renderQuestion(idx);
+                    return;
+                }
+            }
+        }
+
+        /** * 🟢 8. UTILITIES & MODALS 
+         */
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const qid = params.get('qid');
+            if (id) {
+                el('targetQuizId').value = id;
+                if (qid) reportedQId = qid;
+                fetchQuizData();
+            }
+        };
+
+        function jumpTo() { const v = parseInt(el('jumpBox').value); if (v > 0 && v <= QUESTIONS.length) renderQuestion(v - 1); }
+        function toggleSidebar() { el('sidebar').classList.toggle('open'); }
+        function toggleJsonEditor() { el('editorWrapper').classList.toggle('hidden'); if (!el('editorWrapper').classList.contains('hidden')) el("jsonBox").value = JSON.stringify(QUESTIONS[current], null, 2); }
+        function toggleMetaEdit() { el('metaEditor').classList.toggle('hidden'); }
+        function closeBatchModal() { el('batchModal').classList.add('hidden'); }
+        function openBatchModal() { el('batchModal').classList.remove('hidden'); }
+    </script>
+</body>
+</html>
+
