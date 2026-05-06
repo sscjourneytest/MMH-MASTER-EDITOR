@@ -222,6 +222,16 @@
         </div>
     </div>
 
+    <div id="debugToggle" onclick="toggleDebug()" class="fixed bottom-4 left-4 z-[100] bg-black text-white text-[10px] px-3 py-2 rounded-full font-black opacity-50 hover:opacity-100 cursor-pointer">DEBUG CONSOLE</div>
+<div id="debugConsole" class="fixed bottom-0 left-0 w-full h-64 bg-black text-green-400 p-4 font-mono text-[10px] overflow-y-auto z-[90] hidden border-t border-gray-700">
+    <div class="flex justify-between mb-2 border-b border-gray-800 pb-1">
+        <span>LOGS (Real-time)</span>
+        <button onclick="el('debugConsole').innerHTML=''" class="text-red-500">CLEAR</button>
+    </div>
+    <div id="logOutput"></div>
+</div>
+    
+
     <script>
         /** * 🟢 1. GLOBAL STATE & CONFIGURATION 
          */
@@ -624,6 +634,29 @@
         function toggleMetaEdit() { el('metaEditor').classList.toggle('hidden'); }
         function closeBatchModal() { el('batchModal').classList.add('hidden'); }
         function openBatchModal() { el('batchModal').classList.remove('hidden'); }
+
+        // --- MOBILE DEBUG LOGIC ---
+const originalLog = console.log;
+const originalError = console.error;
+const logContainer = () => document.getElementById('logOutput');
+
+console.log = function(...args) {
+    if(logContainer()) logContainer().innerHTML += `<div class="mb-1 text-white">[LOG]: ${args.join(' ')}</div>`;
+    originalLog.apply(console, args);
+};
+
+console.error = function(...args) {
+    if(logContainer()) {
+        logContainer().innerHTML += `<div class="mb-1 text-red-500 font-bold">[ERR]: ${args.join(' ')}</div>`;
+        el('debugConsole').classList.remove('hidden'); // Auto-open on error
+    }
+    originalError.apply(console, args);
+};
+
+function toggleDebug() {
+    el('debugConsole').classList.toggle('hidden');
+}
+        
     </script>
 </body>
 </html>
