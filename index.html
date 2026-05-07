@@ -265,39 +265,37 @@
     let editedIds = new Set();
     let reportedId = null;
     
-   
-window.MathJax = {
-  tex: {
-    inlineMath: [['\\(', '\\)']],
-    displayMath: [['$$', '$$'], ['\\[', '\\]']],
-    processEscapes: true
-  },
-  chtml: {
-    mtextInheritFont: false,
-    displayAlign: 'left',
-    linebreaks: { 
-      allow: true,      
-      width: 'container', 
-      overflow: 'linebreak' 
-    }
-  },
-  options: {
-    skipHtmlTags: ['script', 'style', 'textarea', 'pre']
-  }
-};
-
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    
+        // --- 1. MATHJAX & NORMALIZATION ---
+    window.MathJax = {
+        tex: {
+            inlineMath: [['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true
+        },
+        chtml: {
+            mtextInheritFont: false,
+            displayAlign: 'left',
+            linebreaks: { 
+                allow: true,      
+                width: 'container', 
+                overflow: 'linebreak' 
+            }
+        },
+        options: {
+            skipHtmlTags: ['script', 'style', 'textarea', 'pre']
+        }
+    };
 
     function normalizeMathForQuiz(container) {
-    if (!container) return;
-    // Convert $$...$$ block math to \(...\) inline math for better flow
-    container.innerHTML = container.innerHTML
-        .replace(/(\S)\s*\$\$(.+?)\$\*\s*(\S)/g, '$1 \\($2\\) $3')
-        .replace(/\$\$(.+?)\$\$/g, '\\($1\\)');
-}
+        if (!container) return;
+        // Convert $$...$$ block math to \(...\) inline math for better flow
+        container.innerHTML = container.innerHTML
+            .replace(/(\S)\s*\$\$(.+?)\$\*\s*(\S)/g, '$1 \\($2\\) $3')
+            .replace(/\$\$(.+?)\$\$/g, '\\($1\\)');
+    }
 
-
-    // --- 1. PARAMETER PARSING ---
+    // --- 2. PARAMETER PARSING ---
     function parseParams() {
         const params = new URLSearchParams(window.location.search);
         let id = params.get('id');
@@ -323,6 +321,8 @@ window.MathJax = {
 
         if (id && path) fetchQuizData();
     }
+    
+   
 
     let currentLang = "en"; // Global language state
 
