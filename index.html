@@ -8,262 +8,297 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
-        /* --- UI FROM TEMPLATE: test-t2-s (8).html --- */
         :root {
-            --accent: #0b5ed7;
+            --primary: #0b5ed7;
             --success: #198754;
             --danger: #dc3545;
-            --border-color: #333333;
-            --bg-main: #f5f7fa;
+            --warning: #ffc107;
+            --reported: #f97316;
+            --edited: #8b5cf6;
+            --bg-main: #f4f7fa;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-main); color: #333; overflow-x: hidden; }
+
+        /* --- Palette & Status States --- */
+        .p-item { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; font-weight: 700; font-size: 13px; background: white; transition: 0.2s; }
+        .p-active { border: 3px solid var(--primary); background: #e7f1ff; color: var(--primary); transform: scale(1.05); }
+        .p-edited { background-color: var(--edited) !important; color: white; border-color: #6d28d9; }
+        .p-reported { background-color: var(--reported) !important; color: white; border-color: #c2410c; }
+        .p-both { background: linear-gradient(135deg, var(--reported) 50%, var(--edited) 50%); color: white; }
+
+        /* --- Question Preview Mirror Styles --- */
+        .opt { display: flex; align-items: flex-start; padding: 14px; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 12px; background: white; transition: 0.2s; cursor: pointer; }
+        .opt.correct { background-color: #d1e7dd; border-color: var(--success); }
+        .custom-radio { width: 18px; height: 18px; border: 2px solid #adb5bd; border-radius: 50%; margin-right: 15px; margin-top: 3px; flex-shrink: 0; }
+        .correct .custom-radio { border-color: var(--success); background: radial-gradient(var(--success) 40%, transparent 50%); }
+        .sol-img-styled { max-width:100%; border-radius:12px; border:1px solid #ddd; margin-top:15px; display: block; }
+
+        /* MathJax & Table Responsive Fixes */
+        mjx-container { max-width: 100% !important; overflow-x: auto !important; overflow-y: hidden !important; }
+        .table-wrapper { width: 100%; overflow-x: auto; margin: 15px 0; border-radius: 8px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 10px; border: 1px solid #dee2e6; text-align: center; }
+
+        /* --- Custom Mobile Console --- */
+        #mobileConsole {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 30vh;
+            background: #1e1e1e; color: #00ff00; font-family: 'Fira Code', monospace;
+            font-size: 11px; padding: 10px; overflow-y: auto; z-index: 100;
+            border-top: 3px solid #444; display: none;
+        }
+        .console-log { border-bottom: 1px solid #333; padding: 2px 0; }
+        .console-err { color: #ff5555; }
+        .console-warn { color: #ffaa00; }
+
+        /* Sidebar & FAB */
+        @media (max-width: 1024px) {
+            #sidebar { position: fixed; right: -320px; top: 0; height: 100%; width: 300px; z-index: 50; background: white; transition: 0.4s; box-shadow: -5px 0 20px rgba(0,0,0,0.1); }
+            #sidebar.open { right: 0; }
         }
 
-        body { font-family: 'Inter', sans-serif; background: var(--bg-main); color: #212121; overflow: hidden; height: 100vh; }
-
-        /* Solid UI Elements */
-        .card { background: #ffffff; border: 1.25px solid var(--border-color); border-radius: 0; width: 100%; box-sizing: border-box; }
-        .qbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1.25px solid var(--border-color); background: #fff; }
-        .qmeta { font-size: 14px; font-weight: 600; color: #111; }
-        .qtext { padding: 12px 14px; font-size: 16px; line-height: 1.5; color: #111; font-weight: 500; border-bottom: 1.25px solid var(--border-color); background: #fff; }
-        
-        /* Options Grid */
-        .opt { display: grid; grid-template-columns: 48px 1fr; border-bottom: 1.25px solid var(--border-color); background: #fff; }
-        .opt.correct { background-color: #dff5e7; }
-        .opt-text { padding: 10px 14px; font-size: 15px; color: #111; font-weight: 500; }
-        
-        .custom-radio { position: relative; display: flex; align-items: center; justify-content: center; border-right: 1.25px solid var(--border-color); width: 100%; min-height: 42px; }
-        .custom-radio::before { content: ""; width: 18px; height: 18px; border: 2px solid #757575; border-radius: 50%; }
-        .opt.correct .custom-radio::before { border-color: var(--success); background: var(--success); }
-        .opt.correct .custom-radio::after { content: ""; position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%; }
-
-        /* Palette States */
-        .p-item { width: 42px; height: 35px; display: flex; align-items: center; justify-content: center; border: 1px solid #ababab; cursor: pointer; font-weight: 700; font-size: 13px; background: linear-gradient(to bottom, #ffffff 0%, #f2f2f2 100%); border-radius: 2px; }
-        .p-active { clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%); background: var(--danger) !important; color: white; border: none; }
-        .p-edited { background: var(--success) !important; color: white; border-color: var(--success); }
-        .p-reported { background: #f97316 !important; color: white; border-color: #f97316; }
-
-        /* Fixed Navigation */
-        .section-nav { display: flex; gap: 8px; padding: 10px 16px; background: #fff; border-bottom: 2px solid #eee; overflow-x: auto; white-space: nowrap; }
-        .sec-btn { padding: 8px 18px; background: #0000ff; color: #fff; border-radius: 4px; font-weight: 700; font-size: 13px; text-transform: uppercase; }
-        .sec-btn.active { background: #008000 !important; }
-
-        .fbar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; gap: 8px; z-index: 1000; height: 70px; }
-        .fbar button { flex: 1; padding: 12px 4px; font-size: 13px; border-radius: 8px; background: #0b5ed7; color: #fff; font-weight: 700; text-transform: uppercase; }
-
-        #mobileConsole { position: fixed; bottom: 75px; left: 0; right: 0; height: 25vh; background: #1e1e1e; color: #00ff00; font-family: 'Fira Code', monospace; font-size: 11px; padding: 10px; overflow-y: auto; z-index: 1100; border-top: 3px solid #444; display: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Math & Tables */
-        mjx-container { max-width: 100% !important; overflow-x: auto !important; }
-        table { border-collapse: collapse; width: 100%; border: 1px solid #333; margin: 10px 0; }
-        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+        textarea#jsonBox { font-family: 'Fira Code', monospace; }
     </style>
 
     <script>
-        window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] }, chtml: { displayAlign: 'left' } };
+        window.MathJax = {
+            tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
+            chtml: { displayAlign: 'left' }
+        };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 
-<body class="flex flex-col">
+<body class="h-screen flex flex-col overflow-hidden">
 
     <div id="mobileConsole"></div>
 
-    <header class="bg-white border-b px-4 py-2 flex items-center justify-between shadow-sm z-50 h-[60px]">
-        <div class="flex items-center gap-3">
-            <div>
-                <h1 class="text-sm font-black text-blue-700 leading-none">MMH MASTER</h1>
-                <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Production v2.6</span>
+    <header class="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-20">
+        <div class="flex items-center gap-4">
+            <div class="flex flex-col">
+                <h1 class="text-lg font-black text-blue-700 leading-none">MMH MASTER</h1>
+                <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Prod Sync v2.1</span>
             </div>
-            <div class="flex items-center bg-gray-100 rounded-lg px-2 py-1 border border-gray-200">
-                <input id="targetQuizId" type="text" placeholder="ID" class="bg-transparent outline-none text-[10px] font-bold w-20">
-                <input id="targetPath" type="text" placeholder="Path (e.g. ssc/cgl)" class="bg-transparent outline-none text-[10px] font-bold w-32 border-l pl-2 ml-2 border-gray-300">
-                <button onclick="fetchQuizData()" class="text-blue-600 font-black text-[10px] ml-2">LOAD</button>
+            <div class="flex items-center bg-gray-100 rounded-lg px-3 py-1.5 border border-gray-200">
+                <input id="targetQuizId" type="text" placeholder="Quiz ID" class="bg-transparent outline-none text-xs font-bold w-32 lg:w-48">
+                <input id="targetPath" type="text" placeholder="Path (e.g. ssc/cgl)" class="bg-transparent outline-none text-xs font-bold w-32 border-l pl-2 ml-2 border-gray-300">
+                <button onclick="fetchQuizData()" class="text-blue-600 font-black text-[10px] ml-3 uppercase">Load</button>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="toggleConsole()" class="p-1.5 rounded bg-gray-800 text-white text-[9px] font-bold uppercase">Logs</button>
-            <select id="langSelect" onchange="changeLang(this.value)" class="text-[10px] font-bold border rounded px-1">
-                <option value="en">EN</option>
-                <option value="hi">HI</option>
-                <option value="bilingual">BI</option>
-            </select>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="toggleConsole()" class="px-3 py-1.5 rounded-lg bg-gray-800 text-white text-[10px] font-bold">CONSOLE</button>
+            <button id="syncBtn" onclick="openUpdateModal()" class="hidden px-4 py-1.5 rounded-lg bg-blue-600 text-white text-[10px] font-black shadow-md">SYNC PROD</button>
         </div>
     </header>
 
-    <div id="sectionNav" class="section-nav hidden"></div>
-
     <main class="flex-1 flex overflow-hidden">
-        <section class="flex-1 overflow-y-auto p-4 lg:p-10 bg-gray-50 no-scrollbar pb-32">
+        
+        <section class="flex-1 overflow-y-auto p-4 lg:p-10 bg-gray-50 no-scrollbar">
             
-            <div id="metaBox" class="max-w-3xl mx-auto mb-4 bg-white border border-[#333] hidden">
-                <div class="p-3 flex justify-between items-center bg-gray-50 border-b border-[#333]">
-                    <span class="text-[11px] font-bold text-gray-600 uppercase">Quiz ID: <span id="metaId" class="text-blue-600"></span></span>
-                    <button onclick="toggleMetaEditor()" class="text-[10px] font-black text-blue-600 underline uppercase">Edit Raw Meta & JSON</button>
+            <div id="metaBox" class="max-w-4xl mx-auto mb-6 bg-white p-6 rounded-2xl border hidden shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-xs uppercase tracking-widest text-gray-500">Quiz Metadata</h3>
+                    <button onclick="toggleMetaEditor()" class="text-[10px] text-blue-600 font-bold">EDIT META</button>
                 </div>
-                <div id="metaEditor" class="hidden p-3 bg-gray-900">
-                    <textarea id="metaJson" class="w-full h-40 bg-black text-green-400 p-2 text-[10px] font-mono rounded no-scrollbar"></textarea>
-                    <button onclick="saveMeta()" class="mt-2 w-full bg-green-600 text-white py-2 text-[10px] font-black uppercase">Apply Meta to Local</button>
+                <div id="metaDisplay" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] font-bold uppercase text-gray-600"></div>
+                <div id="metaEditor" class="hidden mt-4 pt-4 border-t border-dashed">
+                    <textarea id="metaJson" class="w-full h-32 p-4 text-xs font-mono bg-gray-50 border rounded-xl"></textarea>
+                    <button onclick="saveMeta()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg text-[10px] font-black">SAVE META</button>
                 </div>
             </div>
 
-            <div id="questionArea" class="max-w-3xl mx-auto hidden">
-                <div class="card">
-                    <div class="qbar">
-                        <div class="qmeta">Question <span id="qNum">1</span> <span id="qIdDisplay" class="ml-4 text-[10px] text-gray-400 font-mono"></span></div>
-                        <button onclick="toggleEditor()" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase">Edit Source</button>
+            <div id="questionArea" class="max-w-4xl mx-auto hidden pb-20">
+                <div class="bg-white rounded-3xl shadow-xl border overflow-hidden">
+                    <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <span class="bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-black">Q.<span id="qNum">1</span></span>
+                            <span id="qIdDisplay" class="text-[10px] font-mono text-gray-400"></span>
+                        </div>
+                        <button onclick="toggleEditor()" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
                     </div>
 
-                    <div class="qtext">
-                        <div id="qText"></div>
-                        <div id="qImage" class="mt-2"></div>
-                    </div>
-                    
-                    <div id="optionsGrid" class="options"></div>
-
-                    <div id="solArea" class="p-4 bg-blue-50 border-t border-[#333] hidden">
-                        <div class="text-[11px] font-bold text-blue-700 uppercase mb-2">Solution Explanation</div>
-                        <div id="solText" class="text-sm text-gray-700 leading-relaxed"></div>
-                        <div id="solImage" class="mt-3"></div>
+                    <div class="p-6 lg:p-10">
+                        <div id="qText" class="text-lg font-bold text-gray-800 mb-8 leading-relaxed"></div>
+                        <div id="qImage" class="mb-8"></div>
+                        <div id="optionsGrid" class="space-y-3"></div>
+                        <div id="solArea" class="mt-10 p-6 bg-green-50 rounded-2xl border border-green-100 hidden">
+                            <span class="text-[10px] font-black text-green-600 uppercase mb-4 block">Solution Text</span>
+                            <div id="solText" class="text-sm text-gray-700 leading-relaxed"></div>
+                            <div id="solImage" class="mt-4"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="inlineEditor" class="hidden mt-4 bg-gray-900 border-2 border-blue-500 p-4 rounded-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-blue-400 text-[10px] font-black uppercase">JSON Editor</span>
-                        <button onclick="saveQEdit()" class="bg-green-600 text-white px-4 py-1.5 rounded text-[10px] font-black uppercase">Save & Render</button>
+                <div id="inlineEditor" class="hidden mt-6 bg-gray-900 rounded-3xl p-6 border-2 border-blue-500/30">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-blue-400 text-[10px] font-black uppercase">Live JSON Editor</span>
+                        <div class="flex gap-2">
+                            <button onclick="resetCurrentQ()" class="text-gray-400 text-[10px] font-bold px-3 py-1">RESET</button>
+                            <button onclick="saveQEdit()" class="bg-green-600 text-white text-[10px] font-black px-4 py-1.5 rounded-lg">SAVE LOCAL</button>
+                        </div>
                     </div>
-                    <textarea id="jsonBox" spellcheck="false" class="w-full h-80 bg-black text-green-400 p-3 text-xs font-mono rounded outline-none no-scrollbar"></textarea>
+                    <textarea id="jsonBox" spellcheck="false" class="w-full h-96 bg-gray-800 text-green-400 p-4 rounded-xl text-xs outline-none focus:ring-2 ring-blue-500 no-scrollbar"></textarea>
+                    <div id="jsonErr" class="hidden mt-2 text-red-500 text-[10px] font-bold uppercase">Invalid JSON Syntax!</div>
                 </div>
             </div>
         </section>
 
-        <aside id="sidebar" class="w-64 border-l bg-[#dae5f0] flex flex-col z-40 lg:relative fixed right-[-100%] top-[60px] h-full transition-all duration-300">
-            <div class="p-3 border-b bg-white flex justify-between items-center">
-                <span class="font-black text-[10px] uppercase">Palette</span>
-                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400">✕</button>
+        <aside id="sidebar" class="w-72 border-l bg-white flex flex-col z-50">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <span class="font-black text-[11px] uppercase tracking-widest">Question Palette</span>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
-            <div id="palette" class="flex-1 overflow-y-auto p-3 grid grid-cols-4 gap-2 content-start no-scrollbar"></div>
+            
+            <div id="sectionTabs" class="flex p-2 bg-white gap-2 overflow-x-auto border-b no-scrollbar"></div>
+
+            <div class="p-4 border-b">
+                <input id="jumpIdx" type="number" placeholder="Jump to #" class="w-full p-2 border rounded-xl text-center text-xs font-bold outline-none focus:border-blue-500">
+            </div>
+
+            <div id="palette" class="flex-1 overflow-y-auto p-4 grid grid-cols-4 gap-2 content-start no-scrollbar"></div>
+
+            <div class="p-4 border-t bg-gray-50 grid grid-cols-2 gap-2 text-[9px] font-bold text-gray-500 uppercase">
+                <div class="flex items-center gap-1"><span class="w-3 h-3 bg-white border rounded"></span> Norm</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 bg-purple-500 rounded"></span> Edit</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 bg-orange-500 rounded"></span> Rep</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 p-both rounded"></span> Fix</div>
+            </div>
         </aside>
     </main>
 
-    <div class="fbar">
-        <button onclick="prevQ()">Previous</button>
-        <button onclick="openUpdateModal()" id="syncBtn" class="hidden !bg-purple-700">Update Quiz Final</button>
-        <button onclick="nextQ()">Save & Next</button>
-    </div>
-
-    <div id="syncModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[2000] p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[40px] w-full max-w-md p-10 shadow-2xl">
-            <h2 class="text-2xl font-black text-blue-700 mb-2 italic">SYNC TO PRODUCTION</h2>
-            <div id="changeLog" class="bg-gray-50 p-4 h-40 overflow-y-auto text-[10px] font-mono mb-6 border rounded-2xl border-dashed"></div>
-            <div class="flex gap-3">
+    <div id="syncModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[40px] w-full max-w-lg p-8 lg:p-12 shadow-2xl">
+            <h2 class="text-2xl font-black italic tracking-tighter text-blue-700 mb-2">PRODUCTION SYNC</h2>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8">Confirming modifications to Content-Store-V1</p>
+            
+            <div id="changeLog" class="bg-gray-50 rounded-2xl p-4 h-48 overflow-y-auto border border-dashed border-gray-300 font-mono text-[11px] text-blue-900 mb-8 whitespace-pre-wrap no-scrollbar"></div>
+            
+            <div class="flex gap-4">
                 <button onclick="closeSyncModal()" class="flex-1 py-4 bg-gray-100 rounded-2xl text-[10px] font-black uppercase text-gray-400">Abort</button>
-                <button onclick="pushToProd()" id="finalPushBtn" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase">Push to Main</button>
+                <button id="finalPushBtn" onclick="pushToProd()" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase shadow-xl hover:bg-blue-700">Push to main</button>
             </div>
         </div>
     </div>
 
-    <button onclick="toggleSidebar()" class="lg:hidden fixed bottom-24 right-6 w-12 h-12 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-[1100]">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+    <div id="batchModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] p-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8">
+            <h4 class="font-black text-sm uppercase mb-6">Batch Global Replace</h4>
+            <input id="findStr" type="text" placeholder="Find..." class="w-full p-3 border rounded-xl mb-4 text-xs">
+            <input id="replaceStr" type="text" placeholder="Replace with..." class="w-full p-3 border rounded-xl mb-6 text-xs">
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleBatchModal(false)" class="text-xs font-bold text-gray-400 px-4">Cancel</button>
+                <button onclick="runBatchReplace()" class="bg-blue-600 text-white text-[10px] font-black px-6 py-2 rounded-lg">EXECUTE</button>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="toggleSidebar()" class="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-green-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
     </button>
 
     <script>
+        /** * --- MMH MASTER CONFIGURATION & STATE ---
+         */
         const WORKER_BASE = "https://mmh-question-reports-1.sscgkgspreparation.workers.dev/";
+        let FULL_QUIZ = null;
         let MODIFIED_QUIZ = null;
         let QUESTIONS = [];
         let currentIdx = 0;
         let currentSec = "";
-        let currentLang = "en";
+        let folderType = ""; // free or paid
         let editedIds = new Set();
         let reportedId = null;
 
+        // Custom Console Logger
         function log(msg, type = 'info') {
             const c = document.getElementById('mobileConsole');
             const div = document.createElement('div');
-            div.className = `p-1 border-b border-gray-800 ${type === 'error' ? 'text-red-500' : ''}`;
+            div.className = `console-log ${type === 'error' ? 'console-err' : (type === 'warn' ? 'console-warn' : '')}`;
             div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
             c.appendChild(div);
             c.scrollTop = c.scrollHeight;
+            console.log(msg);
         }
 
-        function toggleConsole() { const c = document.getElementById('mobileConsole'); c.style.display = (c.style.display === 'none' || c.style.display === '') ? 'block' : 'none'; }
+        function toggleConsole() {
+            const c = document.getElementById('mobileConsole');
+            c.style.display = c.style.display === 'none' ? 'block' : 'none';
+        }
 
+        /**
+         * --- DATA FETCHING (ACTION: GET_QUIZ) ---
+         */
         async function fetchQuizData() {
             const id = document.getElementById('targetQuizId').value.trim();
             const path = document.getElementById('targetPath').value.trim();
-            if(!id || !path) return alert("ID and Path required!");
-            log(`Loading ${id}...`);
+            
+            if(!id || !path) {
+                alert("Enter both ID and Path!");
+                return;
+            }
+
+            log(`Initiating fetch for ${id} in ${path}...`);
             try {
                 const res = await fetch(`${WORKER_BASE}?action=GET_QUIZ&id=${id}&path=${path}`);
+                if(!res.ok) throw new Error(`HTTP Error ${res.status}`);
+                
                 const data = await res.json();
+                FULL_QUIZ = JSON.parse(JSON.stringify(data.quiz));
                 MODIFIED_QUIZ = data.quiz;
+                folderType = data.folderType;
+                
+                log(`Loaded successfully from ${folderType} folder.`);
                 initUI();
-            } catch (err) { log("Fetch failed", "error"); }
+            } catch (err) {
+                log(`Fetch failed: ${err.message}`, 'error');
+                alert("Fetch Error: Check console.");
+            }
         }
 
         function initUI() {
             const secs = Object.keys(MODIFIED_QUIZ.sections);
             renderSectionTabs(secs);
             switchSection(secs[0]);
+            
             document.getElementById('metaBox').classList.remove('hidden');
             document.getElementById('questionArea').classList.remove('hidden');
             document.getElementById('syncBtn').classList.remove('hidden');
-            document.getElementById('sectionNav').classList.remove('hidden');
-            document.getElementById('metaId').innerText = MODIFIED_QUIZ.meta.id;
+            renderMeta();
+
+            // Handle URL-based Reported Question Jumping
             if(reportedId) jumpToId(reportedId);
         }
 
-        function renderSectionTabs(secs) {
-            const nav = document.getElementById('sectionNav');
-            nav.innerHTML = "";
-            secs.forEach(s => {
-                const btn = document.createElement('button');
-                btn.className = `sec-btn ${s === currentSec ? 'active' : ''}`;
-                btn.innerText = s;
-                btn.onclick = () => switchSection(s);
-                nav.appendChild(btn);
-            });
-        }
-
+        /**
+         * --- CORE UI RENDERING ---
+         */
         function switchSection(name) {
             currentSec = name;
-            const raw = MODIFIED_QUIZ.sections[name];
-            // --- PARSING LOGIC: HANDLES BOTH JSON STRUCTURES ---
-            if (Array.isArray(raw)) {
-                QUESTIONS = raw;
-            } else if (raw && raw.questions) {
-                QUESTIONS = raw.questions;
-            } else {
-                QUESTIONS = [];
-            }
+            // Handle both flat and TIMER structures
+            const rawSec = MODIFIED_QUIZ.sections[name];
+            QUESTIONS = Array.isArray(rawSec) ? rawSec : rawSec.questions;
+            
             renderPalette();
             renderQuestion(0);
             renderSectionTabs(Object.keys(MODIFIED_QUIZ.sections));
         }
 
-        /* --- RENDERING: Direct copy-paste logic from template --- */
         function renderQuestion(idx) {
             currentIdx = idx;
             const q = QUESTIONS[idx];
-            if (!q) return;
-
             document.getElementById('qNum').innerText = idx + 1;
-            document.getElementById('qIdDisplay').innerText = `ID: ${q.id}`;
-            document.getElementById('qText').innerHTML = applyBold(getLangText(q.question));
+            document.getElementById('qIdDisplay').innerText = `SYS_ID: ${q.id}`;
             
-            // Image Construction Fallback
-            const pathSegments = document.getElementById('targetPath').value.split('/');
-            const imgBase = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${pathSegments[0]}/${pathSegments[1]}/${document.getElementById('targetQuizId').value}/`;
-            const cleanId = parseInt(String(q.id).slice(1));
-            const imgStyle = "max-width:90%; max-height:250px; display:block; margin:10px auto; border:1px solid #333; border-radius:6px;";
-
-            const qImgBox = document.getElementById('qImage');
-            if(q.question_image) {
-                qImgBox.innerHTML = `<img src="${q.question_image}" style="${imgStyle}">`;
-            } else {
-                const dynUrl = `${imgBase}q-${cleanId}-image1.jpg`;
-                qImgBox.innerHTML = `<img src="${dynUrl}" style="${imgStyle} display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">`;
-            }
+            // Text Content - Mirroring Template Bold/Lang Logic
+            document.getElementById('qText').innerHTML = parseContent(q.question);
+            
+            // Images
+            renderImages(q);
 
             // Options
             const grid = document.getElementById('optionsGrid');
@@ -271,14 +306,11 @@
             [1, 2, 3, 4, 5].forEach(i => {
                 if(q[`option_${i}`]) {
                     const div = document.createElement('div');
-                    div.className = `opt ${String(q.answer) === String(i) ? 'correct' : ''}`;
-                    const optImg = q[`option_image_${i}`] || `${imgBase}q-${cleanId}-image${i+1}.jpg`;
+                    div.className = `opt ${String(q.answer) === String(i) ? 'correct shadow-md' : ''}`;
                     div.innerHTML = `
                         <div class="custom-radio"></div>
-                        <div class="flex-1">
-                            <div class="opt-text">${applyBold(getLangText(q[`option_${i}`]))}</div>
-                            <img src="${optImg}" style="max-width:180px; display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">
-                        </div>`;
+                        <div class="text-sm font-bold text-gray-700">${parseContent(q[`option_${i}`])}</div>
+                    `;
                     grid.appendChild(div);
                 }
             });
@@ -287,31 +319,42 @@
             const sol = document.getElementById('solArea');
             if(q.solution_text || q.solution_image) {
                 sol.classList.remove('hidden');
-                document.getElementById('solText').innerHTML = applyBold(getLangText(q.solution_text));
-                const solImg = q.solution_image || `${imgBase}q-${cleanId}-image6.jpg`;
-                document.getElementById('solImage').innerHTML = `<img src="${solImg}" class="max-w-full border" style="display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">`;
-            } else sol.classList.add('hidden');
+                document.getElementById('solText').innerHTML = parseContent(q.solution_text);
+            } else {
+                sol.classList.add('hidden');
+            }
 
             if(window.MathJax) MathJax.typesetPromise();
             highlightPalette();
+            
+            // Update Editor if open
             if(!document.getElementById('inlineEditor').classList.contains('hidden')) {
                 document.getElementById('jsonBox').value = JSON.stringify(q, null, 4);
             }
         }
 
-        function getLangText(obj) {
-            if(!obj) return "";
-            if(typeof obj === 'string') return obj;
-            if(currentLang === 'bilingual') return (obj.en || "") + "<hr style='border:none; border-top:1.25px dashed #333; margin:10px 0;'>" + (obj.hi || "");
-            return obj[currentLang] || obj.en || "";
+        function renderImages(q) {
+            const box = document.getElementById('qImage');
+            box.innerHTML = "";
+            if(q.question_image) {
+                box.innerHTML = `<img src="${q.question_image}" class="max-w-full rounded-xl border">`;
+            }
         }
 
-        function applyBold(html) { return html.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 800; color: #000;">$1</strong>'); }
+        function parseContent(obj) {
+            if(!obj) return "";
+            let str = (typeof obj === 'string') ? obj : (obj.hi || obj.en || "");
+            // Bold parser **text** -> <strong>text</strong>
+            return str.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-900">$1</strong>');
+        }
 
+        /**
+         * --- PALETTE & NAVIGATION ---
+         */
         function renderPalette() {
             const p = document.getElementById('palette');
             p.innerHTML = "";
-            QUESTIONS.forEach((_, i) => {
+            QUESTIONS.forEach((q, i) => {
                 const btn = document.createElement('div');
                 btn.className = "p-item";
                 btn.innerText = i + 1;
@@ -323,18 +366,36 @@
         function highlightPalette() {
             const items = document.querySelectorAll('.p-item');
             items.forEach((item, i) => {
+                item.classList.remove('p-active', 'p-edited', 'p-reported', 'p-both');
                 const qId = String(QUESTIONS[i].id);
-                item.classList.remove('p-active', 'p-edited', 'p-reported');
                 if(i === currentIdx) item.classList.add('p-active');
                 if(editedIds.has(qId)) item.classList.add('p-edited');
                 if(qId === reportedId) item.classList.add('p-reported');
+                if(editedIds.has(qId) && qId === reportedId) item.classList.add('p-both');
             });
         }
 
-        function toggleEditor() { 
+        function renderSectionTabs(secs) {
+            const container = document.getElementById('sectionTabs');
+            container.innerHTML = "";
+            secs.forEach(s => {
+                const b = document.createElement('button');
+                b.className = `px-4 py-1.5 rounded-full text-[9px] font-black uppercase whitespace-nowrap transition-all ${s === currentSec ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`;
+                b.innerText = s;
+                b.onclick = () => switchSection(s);
+                container.appendChild(b);
+            });
+        }
+
+        /**
+         * --- EDITING LOGIC ---
+         */
+        function toggleEditor() {
             const ed = document.getElementById('inlineEditor');
             ed.classList.toggle('hidden');
-            if(!ed.classList.contains('hidden')) document.getElementById('jsonBox').value = JSON.stringify(QUESTIONS[currentIdx], null, 4);
+            if(!ed.classList.contains('hidden')) {
+                document.getElementById('jsonBox').value = JSON.stringify(QUESTIONS[currentIdx], null, 4);
+            }
         }
 
         function saveQEdit() {
@@ -342,75 +403,144 @@
                 const updated = JSON.parse(document.getElementById('jsonBox').value);
                 QUESTIONS[currentIdx] = updated;
                 editedIds.add(String(updated.id));
-                log(`Saved ID ${updated.id}`);
+                document.getElementById('jsonErr').classList.add('hidden');
+                log(`Question ID ${updated.id} saved to memory.`);
                 renderQuestion(currentIdx);
-            } catch (e) { alert("JSON ERROR"); }
+            } catch (e) {
+                document.getElementById('jsonErr').classList.remove('hidden');
+                log("JSON Parsing Error!", "error");
+            }
         }
 
-        function nextQ() { if(currentIdx < QUESTIONS.length - 1) renderQuestion(currentIdx + 1); }
-        function prevQ() { if(currentIdx > 0) renderQuestion(currentIdx - 1); }
-
-        function toggleMetaEditor() { 
-            document.getElementById('metaEditor').classList.toggle('hidden'); 
-            document.getElementById('metaJson').value = JSON.stringify(MODIFIED_QUIZ.meta, null, 4); 
+        function resetCurrentQ() {
+            const original = FULL_QUIZ.sections[currentSec];
+            const qList = Array.isArray(original) ? original : original.questions;
+            QUESTIONS[currentIdx] = JSON.parse(JSON.stringify(qList[currentIdx]));
+            editedIds.delete(String(QUESTIONS[currentIdx].id));
+            renderQuestion(currentIdx);
+            log("Question reset to original.");
         }
 
-        function saveMeta() { 
-            try { 
-                MODIFIED_QUIZ.meta = JSON.parse(document.getElementById('metaJson').value); 
-                toggleMetaEditor(); 
-                log("Meta updated."); 
-            } catch(e){ alert("JSON ERROR"); } 
+        /**
+         * --- META LOGIC ---
+         */
+        function renderMeta() {
+            const disp = document.getElementById('metaDisplay');
+            disp.innerHTML = "";
+            Object.entries(MODIFIED_QUIZ.meta).forEach(([k, v]) => {
+                if(typeof v !== 'object') {
+                    disp.innerHTML += `<div class="bg-gray-50 p-2 rounded-lg border"><span>${k}:</span> <span class="text-blue-600">${v}</span></div>`;
+                }
+            });
+            document.getElementById('metaJson').value = JSON.stringify(MODIFIED_QUIZ.meta, null, 4);
         }
 
+        function toggleMetaEditor() {
+            document.getElementById('metaEditor').classList.toggle('hidden');
+        }
+
+        function saveMeta() {
+            try {
+                MODIFIED_QUIZ.meta = JSON.parse(document.getElementById('metaJson').value);
+                renderMeta();
+                toggleMetaEditor();
+                log("Metadata updated.");
+            } catch (e) { alert("Invalid Meta JSON"); }
+        }
+
+        /**
+         * --- PRODUCTION SYNC (ACTION: UPDATE_QUIZ) ---
+         */
         function openUpdateModal() {
             const logBox = document.getElementById('changeLog');
-            logBox.innerText = `Folder: ${document.getElementById('targetPath').value}\nModified: ${editedIds.size}\nIDs: ${Array.from(editedIds).join(', ')}`;
+            logBox.innerText = `REPO: Content-Store-V1\nFOLDER: ${folderType.toUpperCase()}\nPATH: ${document.getElementById('targetPath').value}\n\n`;
+            
+            if(editedIds.size > 0) {
+                logBox.innerText += `MODIFIED IDS: ${Array.from(editedIds).join(', ')}\n`;
+            } else {
+                logBox.innerText += "SYSTEM: Global Meta/Batch Changes Detected.\n";
+            }
+            
             document.getElementById('syncModal').classList.remove('hidden');
         }
 
-        function closeSyncModal() { document.getElementById('syncModal').classList.add('hidden'); }
+        function closeSyncModal() {
+            document.getElementById('syncModal').classList.add('hidden');
+        }
 
         async function pushToProd() {
             const btn = document.getElementById('finalPushBtn');
-            btn.innerText = "PUSHING..."; btn.disabled = true;
+            btn.innerText = "UPLOADING BLOB...";
+            btn.disabled = true;
+
+            const payload = {
+                updatedData: MODIFIED_QUIZ,
+                folderType: folderType
+            };
+
+            const id = document.getElementById('targetQuizId').value;
+            const path = document.getElementById('targetPath').value;
+
             try {
-                const res = await fetch(`${WORKER_BASE}?action=UPDATE_QUIZ&id=${document.getElementById('targetQuizId').value}&path=${document.getElementById('targetPath').value}`, {
+                const res = await fetch(`${WORKER_BASE}?action=UPDATE_QUIZ&id=${id}&path=${path}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ updatedData: MODIFIED_QUIZ })
+                    body: JSON.stringify(payload)
                 });
-                if(res.ok) { alert("Sync Successful!"); location.reload(); }
-            } catch (e) { alert("Push failed"); btn.disabled = false; }
+
+                if(res.ok) {
+                    log("SUCCESS: PRODUCTION FILE UPDATED!", "info");
+                    alert("Sync Successful! Page will reload.");
+                    location.reload();
+                } else {
+                    throw new Error("Update action failed on worker.");
+                }
+            } catch (err) {
+                log(`Sync Error: ${err.message}`, "error");
+                alert("Failed to sync with GitHub.");
+                btn.innerText = "Push to main";
+                btn.disabled = false;
+            }
         }
 
-        function toggleSidebar() { 
-            const s = document.getElementById('sidebar');
-            s.classList.toggle('right-0');
-            s.classList.toggle('right-[-100%]');
+        /**
+         * --- UTILITIES ---
+         */
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
         }
-        
-        function changeLang(v) { currentLang = v; renderQuestion(currentIdx); }
 
         function jumpToId(id) {
-            for(const s in MODIFIED_QUIZ.sections) {
-                const raw = MODIFIED_QUIZ.sections[s];
-                const qs = Array.isArray(raw) ? raw : raw.questions;
+            for(const secName in MODIFIED_QUIZ.sections) {
+                const sec = MODIFIED_QUIZ.sections[secName];
+                const qs = Array.isArray(sec) ? sec : sec.questions;
                 const idx = qs.findIndex(q => String(q.id) === String(id));
-                if(idx !== -1) { switchSection(s); renderQuestion(idx); break; }
+                if(idx !== -1) {
+                    switchSection(secName);
+                    renderQuestion(idx);
+                    log(`Jumped to reported ID: ${id}`);
+                    break;
+                }
             }
         }
 
         window.onload = () => {
             const params = new URLSearchParams(window.location.search);
-            const startapp = params.get('startapp');
-            if(startapp) {
-                const [id, path, qid] = startapp.split('__');
-                document.getElementById('targetQuizId').value = id;
-                document.getElementById('targetPath').value = path.replace(/_/g, '/');
-                reportedId = qid;
-                fetchQuizData();
-            }
+            const urlId = params.get('id');
+            const urlQid = params.get('qid');
+            const urlPath = params.get('path');
+
+            if(urlId) document.getElementById('targetQuizId').value = urlId;
+            if(urlPath) document.getElementById('targetPath').value = urlPath;
+            if(urlQid) reportedId = urlQid;
+
+            if(urlId && urlPath) fetchQuizData();
+        };
+
+        // Jump Box Listener
+        document.getElementById('jumpIdx').onchange = (e) => {
+            const val = parseInt(e.target.value);
+            if(val > 0 && val <= QUESTIONS.length) renderQuestion(val - 1);
         };
     </script>
 </body>
