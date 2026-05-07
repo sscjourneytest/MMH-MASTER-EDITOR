@@ -167,14 +167,27 @@
 
             <div id="questionArea" class="max-w-4xl mx-auto hidden">
                 <div id="quizCard" class="card">
-                    <div class="qbar">
-                        <div class="qmeta font-bold text-sm">Question: <span id="qNum">1</span> <span id="editStatus" class="ml-3 text-[10px] text-purple-600 hidden">[EDITED]</span></div>
-                        <div class="flex gap-3">
+                                    <div class="qbar">
+                        <div class="qmeta font-bold text-sm">
+                            Question: <span id="qNum">1</span> 
+                            <span id="editStatus" class="ml-3 text-[10px] text-purple-600 hidden">● SAVED LOCALLY</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2 mr-2">
+                                <span class="text-[9px] font-black uppercase text-gray-400">View:</span>
+                                <select id="cardLangSelect" class="text-[11px] font-bold border rounded px-1 outline-none bg-gray-50">
+                                    <option value="en">English</option>
+                                    <option value="hi">हिन्दी</option>
+                                    <option value="bilingual">EN+HI</option>
+                                </select>
+                            </div>
                             <button onclick="toggleEditor()" class="text-blue-600">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
                         </div>
                     </div>
+
+             
                     <div class="qtext">
                         <div id="qTextBody"></div>
                         <div id="qImageBox" class="mt-3"></div>
@@ -216,11 +229,17 @@
         <button onclick="navPrev()" class="flex items-center gap-2 text-xs font-black uppercase text-gray-600">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M15 19l-7-7 7-7"></path></svg> Prev
         </button>
-        <div id="navProgress" class="text-[10px] font-black text-gray-400">0 / 0</div>
+        
+        <button onclick="openSyncModal()" class="bg-blue-600 text-white px-8 py-2.5 rounded-full text-[11px] font-black uppercase shadow-xl hover:bg-blue-700 transition-all active:scale-95 border-2 border-white">
+            🚀 Update GitHub
+        </button>
+
         <button onclick="navNext()" class="flex items-center gap-2 text-xs font-black uppercase text-blue-600">
             Next <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
         </button>
     </nav>
+
+
 
     <div id="syncModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[200] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
@@ -232,8 +251,8 @@
             </div>
         </div>
     </div>
-
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    
 <script>
     const WORKER_BASE = "https://mmh-question-reports-1.sscgkgspreparation.workers.dev/";
     let FULL_QUIZ = null;
@@ -245,6 +264,38 @@
     let GITHUB_PATH = "";
     let editedIds = new Set();
     let reportedId = null;
+    
+   
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true
+  },
+  chtml: {
+    mtextInheritFont: false,
+    displayAlign: 'left',
+    linebreaks: { 
+      allow: true,      
+      width: 'container', 
+      overflow: 'linebreak' 
+    }
+  },
+  options: {
+    skipHtmlTags: ['script', 'style', 'textarea', 'pre']
+  }
+};
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+    function normalizeMathForQuiz(container) {
+    if (!container) return;
+    // Convert $$...$$ block math to \(...\) inline math for better flow
+    container.innerHTML = container.innerHTML
+        .replace(/(\S)\s*\$\$(.+?)\$\*\s*(\S)/g, '$1 \\($2\\) $3')
+        .replace(/\$\$(.+?)\$\$/g, '\\($1\\)');
+}
+
 
     // --- 1. PARAMETER PARSING ---
     function parseParams() {
@@ -272,6 +323,47 @@
 
         if (id && path) fetchQuizData();
     }
+
+    let currentLang = "en"; // Global language state
+
+    // Template Logic: Returns Hindi if available, otherwise English fallback
+    const getLangText = (obj) => {
+        if (!obj) return "";
+        
+        const decodeHTML = (html) => {
+            const txt = document.createElement("textarea");
+            txt.innerHTML = html;
+            return txt.value;
+        };
+
+        let rawText = "";
+        if (typeof obj === "string") {
+            rawText = obj;
+        } else if (currentLang === "bilingual") {
+            const enText = obj.en || "";
+            const hiText = obj.hi || "";
+            rawText = enText + (enText && hiText ? "<hr style='border:none; border-top:1px dashed #ccc; margin:10px 0;'>" : "") + hiText;
+        } else {
+            // Fallback Logic: if hi string is empty, show en
+            rawText = obj[currentLang] || obj["en"] || "";
+        }
+
+        return decodeHTML(rawText);
+    };
+
+    // Template Logic: Bolding style
+    function applyBoldHighlight(html) {
+        if (!html || typeof html !== "string") return html;
+        return html.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 800; color: #000;">$1</strong>');
+    }
+
+    // Listener for language changes
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.id === 'cardLangSelect') {
+            currentLang = e.target.value;
+            renderQuestion(currentIdx);
+        }
+    });
 
     // --- 2. DATA FETCHING ---
     async function fetchQuizData() {
@@ -316,69 +408,80 @@
         renderQuestion(0);
     }
 
-    function renderQuestion(idx) {
-        currentIdx = idx;
-        const q = QUESTIONS[idx];
-        const qid = String(q.id);
-        
-        document.getElementById('qNum').innerText = idx + 1;
+function renderQuestion(idx) {
+    currentIdx = idx;
+    const q = QUESTIONS[idx];
+    const qid = String(q.id);
+    
+    // Editor UI updates
+    document.getElementById('qNum').innerText = idx + 1;
+    if(document.getElementById('navProgress')) {
         document.getElementById('navProgress').innerText = `${idx + 1} / ${QUESTIONS.length}`;
-        document.getElementById('editStatus').classList.toggle('hidden', !editedIds.has(qid));
-        
-        document.getElementById('qTextBody').innerHTML = parseContent(q.question);
-        
-        // Dynamic image pathing
-        const cleanIdx = parseInt(qid.slice(1));
-        const pathSegments = GITHUB_PATH.split('/');
-        const imgBase = `${pathSegments[0]}/${pathSegments[1]}`;
-        const quizId = document.getElementById('targetQuizId').value;
-        
-        const qImgUrl = q.question_image || `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image1.jpg`;
-        document.getElementById('qImageBox').innerHTML = `<img src="${qImgUrl}" class="max-w-full border rounded-lg" onerror="this.style.display='none'">`;
+    }
+    document.getElementById('editStatus').classList.toggle('hidden', !editedIds.has(qid));
+    
+    // 1. Render Question Text with Normalization
+    const qTextContainer = document.getElementById('qTextBody');
+    qTextContainer.innerHTML = applyBoldHighlight(getLangText(q.question));
+    normalizeMathForQuiz(qTextContainer);
 
-        const grid = document.getElementById('optionsGrid');
-        grid.innerHTML = "";
-        [1, 2, 3, 4, 5].forEach(i => {
-            const optKey = `option_${i}`;
-            if(q[optKey]) {
-                const div = document.createElement('div');
-                div.className = `opt ${String(q.answer) === String(i) ? 'correct' : ''}`;
-                const optImgUrl = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image${i+1}.jpg`;
-                
-                div.innerHTML = `
-                    <div class="custom-radio"></div>
-                    <div class="flex flex-col">
-                        <div class="opt-text">${parseContent(q[optKey])}</div>
-                        <img src="${optImgUrl}" class="mt-2 max-w-[180px]" onerror="this.style.display='none'">
-                    </div>
-                `;
-                grid.appendChild(div);
-            }
-        });
+    // Dynamic image pathing
+    const cleanIdx = parseInt(qid.slice(1));
+    const pathSegments = GITHUB_PATH.split('/');
+    const imgBase = `${pathSegments[0]}/${pathSegments[1]}`;
+    const quizId = document.getElementById('targetQuizId').value;
+    
+    const qImgUrl = q.question_image || `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image1.jpg`;
+    document.getElementById('qImageBox').innerHTML = `<img src="${qImgUrl}" class="max-w-full border rounded-lg" onerror="this.style.display='none'">`;
 
-        const sol = document.getElementById('solArea');
-        if (q.solution_text || q.solution_image) {
-            sol.classList.remove('hidden');
-            document.getElementById('solTextBody').innerHTML = parseContent(q.solution_text);
-            const sImgUrl = q.solution_image || `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image6.jpg`;
-            document.getElementById('solImageBox').innerHTML = `<img src="${sImgUrl}" class="max-w-full border rounded-lg" onerror="this.style.display='none'">`;
-        } else {
-            sol.classList.add('hidden');
+    // 2. Render Options with Template Styling
+    const grid = document.getElementById('optionsGrid');
+    grid.innerHTML = "";
+    [1, 2, 3, 4, 5].forEach(i => {
+        const optKey = `option_${i}`;
+        if(q[optKey]) {
+            const div = document.createElement('div');
+            div.className = `opt ${String(q.answer) === String(i) ? 'correct' : ''}`;
+            const optImgUrl = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image${i+1}.jpg`;
+            
+            div.innerHTML = `
+                <div class="custom-radio"></div>
+                <div class="flex flex-col">
+                    <div class="opt-text">${applyBoldHighlight(getLangText(q[optKey]))}</div>
+                    <img src="${optImgUrl}" class="mt-2 max-w-[180px] border rounded" onerror="this.style.display='none'">
+                </div>
+            `;
+            grid.appendChild(div);
+            // Normalizing math for each option
+            normalizeMathForQuiz(div.querySelector('.opt-text'));
         }
+    });
 
-        if(window.MathJax) MathJax.typesetPromise();
-        highlightPalette();
-        if(!document.getElementById('inlineEditor').classList.contains('hidden')) {
-            document.getElementById('jsonBox').value = JSON.stringify(q, null, 4);
-        }
+    // 3. Render Solution Area with Styled Images
+    const sol = document.getElementById('solArea');
+    if (q.solution_text || q.solution_image) {
+        sol.classList.remove('hidden');
+        const solTextContainer = document.getElementById('solTextBody');
+        solTextContainer.innerHTML = applyBoldHighlight(getLangText(q.solution_text));
+        normalizeMathForQuiz(solTextContainer);
+        
+        const sImgUrl = q.solution_image || `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image6.jpg`;
+        // Added 'sol-img-styled' for template consistency
+        document.getElementById('solImageBox').innerHTML = `<img src="${sImgUrl}" class="sol-img-styled max-w-full border rounded-lg" onerror="this.style.display='none'">`;
+    } else {
+        sol.classList.add('hidden');
     }
 
-    // Bold parser logic
-    function parseContent(obj) {
-        if(!obj) return "";
-        let str = (typeof obj === 'string') ? obj : (obj.hi || obj.en || "");
-        return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // 4. Final MathJax Processing
+    if(window.MathJax) MathJax.typesetPromise();
+    
+    highlightPalette();
+    if(!document.getElementById('inlineEditor').classList.contains('hidden')) {
+        document.getElementById('jsonBox').value = JSON.stringify(q, null, 4);
     }
+}
+
+    
 
     // --- 4. EDITOR LOGIC ---
     function saveQEdit() {
@@ -457,6 +560,7 @@
             const d = document.createElement('div'); d.className = "p-item"; d.innerText = i+1;
             d.onclick = () => renderQuestion(i); g.appendChild(d);
         });
+        
     }
     function highlightPalette() {
         const items = document.querySelectorAll('.p-item');
@@ -469,12 +573,36 @@
             if(editedIds.has(qid) && qid === reportedId) item.classList.add('p-both');
         });
     }
-    function openSyncModal() {
-        document.getElementById('changeLog').innerText = `MODIFIED IDS: ${Array.from(editedIds).join(', ') || 'Global Meta Only'}`;
+    
+        function openSyncModal() {
+        const logBox = document.getElementById('changeLog');
+        const isMetaChanged = JSON.stringify(FULL_QUIZ.meta) !== JSON.stringify(MODIFIED_QUIZ.meta);
+        
+        let summary = `🚨 PRODUCTION SYNC SUMMARY 🚨\n`;
+        summary += `------------------------------\n`;
+        summary += `TARGET: ${folderType.toUpperCase()} / ${GITHUB_PATH}\n\n`;
+        
+        summary += isMetaChanged ? `✅ [METADATA] -> EDITED\n` : `⚪ [METADATA] -> NO CHANGES\n`;
+        
+        if (editedIds.size > 0) {
+            summary += `📝 [QUESTIONS] -> ${editedIds.size} EDITED\n`;
+            summary += `   IDs: ${Array.from(editedIds).join(', ')}\n`;
+        } else {
+            summary += `📝 [QUESTIONS] -> NO CHANGES\n`;
+        }
+        
+        summary += `------------------------------\n`;
+        summary += `⚠️ WARNING: This will update the production file on GitHub.`;
+        
+        logBox.innerText = summary;
         document.getElementById('syncModal').style.display = "flex";
     }
-    function closeSyncModal() { document.getElementById('syncModal').style.display = "none"; }
 
+    function closeSyncModal() {
+        document.getElementById('syncModal').style.display = "none";
+    }
+
+    
     window.onload = parseParams;
     document.getElementById('jumpIdx').onchange = (e) => {
         const val = parseInt(e.target.value);
@@ -484,4 +612,5 @@
 
 </body>
 </html>
+
 
