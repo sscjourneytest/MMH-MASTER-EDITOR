@@ -408,7 +408,7 @@
         renderQuestion(0);
     }
 
-function renderQuestion(idx) {
+    function renderQuestion(idx) {
     currentIdx = idx;
     const q = QUESTIONS[idx];
     const qid = String(q.id);
@@ -420,54 +420,77 @@ function renderQuestion(idx) {
     }
     document.getElementById('editStatus').classList.toggle('hidden', !editedIds.has(qid));
     
-    // 1. Render Question Text with Normalization
+    // 1. Render Question Text
     const qTextContainer = document.getElementById('qTextBody');
     qTextContainer.innerHTML = applyBoldHighlight(getLangText(q.question));
     normalizeMathForQuiz(qTextContainer);
 
-    // Dynamic image pathing
+    // Image Pathing Logic (Deto Template Protocol)
     const cleanIdx = parseInt(qid.slice(1));
     const pathSegments = GITHUB_PATH.split('/');
     const imgBase = `${pathSegments[0]}/${pathSegments[1]}`;
     const quizId = document.getElementById('targetQuizId').value;
     
-    const qImgUrl = q.question_image || `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image1.jpg`;
-    document.getElementById('qImageBox').innerHTML = `<img src="${qImgUrl}" class="max-w-full border rounded-lg" onerror="this.style.display='none'">`;
+    // --- QUESTION IMAGE ---
+    const qImgBox = document.getElementById('qImageBox');
+    const dynamicQImg = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image1.jpg`;
+    const qImgStyle = "max-width:90%; max-height:250px; width:auto; height:auto; display:block; margin:10px auto; border:1px solid #ddd; border-radius:6px; object-fit:contain;";
 
-    // 2. Render Options with Template Styling
+    if (q.question_image && q.question_image.trim() !== "") {
+        qImgBox.innerHTML = `<img src="${q.question_image}" style="${qImgStyle}" onerror="this.style.display='none'">`;
+    } else {
+        qImgBox.innerHTML = `<img src="${dynamicQImg}" style="${qImgStyle} display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">`;
+    }
+
+    // 2. Render Options
     const grid = document.getElementById('optionsGrid');
     grid.innerHTML = "";
+    const optStyle = "max-width:180px; max-height:100px; width:auto; height:auto; border-radius:4px; border:1px solid #eee; object-fit:contain; vertical-align:middle;";
+
     [1, 2, 3, 4, 5].forEach(i => {
         const optKey = `option_${i}`;
+        const optImgField = `option_image_${i}`;
         if(q[optKey]) {
             const div = document.createElement('div');
             div.className = `opt ${String(q.answer) === String(i) ? 'correct' : ''}`;
-            const optImgUrl = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image${i+1}.jpg`;
             
+            const dynamicOptImg = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image${i+1}.jpg`;
+            
+            let optImgHtml = "";
+            if (q[optImgField] && q[optImgField].trim() !== "") {
+                optImgHtml = `<div style="margin-top:8px;"><img src="${q[optImgField]}" style="${optStyle}"></div>`;
+            } else {
+                optImgHtml = `<div style="margin-top:8px;"><img src="${dynamicOptImg}" style="${optStyle} display:none;" onload="this.style.display='block'" onerror="this.style.display='none'"></div>`;
+            }
+
             div.innerHTML = `
                 <div class="custom-radio"></div>
                 <div class="flex flex-col">
                     <div class="opt-text">${applyBoldHighlight(getLangText(q[optKey]))}</div>
-                    <img src="${optImgUrl}" class="mt-2 max-w-[180px] border rounded" onerror="this.style.display='none'">
+                    ${optImgHtml}
                 </div>
             `;
             grid.appendChild(div);
-            // Normalizing math for each option
             normalizeMathForQuiz(div.querySelector('.opt-text'));
         }
     });
 
-    // 3. Render Solution Area with Styled Images
+    // 3. Render Solution Area
     const sol = document.getElementById('solArea');
+    const solImgBox = document.getElementById('solImageBox');
     if (q.solution_text || q.solution_image) {
         sol.classList.remove('hidden');
         const solTextContainer = document.getElementById('solTextBody');
         solTextContainer.innerHTML = applyBoldHighlight(getLangText(q.solution_text));
         normalizeMathForQuiz(solTextContainer);
         
-        const sImgUrl = q.solution_image || `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image6.jpg`;
-        // Added 'sol-img-styled' for template consistency
-        document.getElementById('solImageBox').innerHTML = `<img src="${sImgUrl}" class="sol-img-styled max-w-full border rounded-lg" onerror="this.style.display='none'">`;
+        const dynamicSolImg = `https://raw.githubusercontent.com/mockmatrixhub/mmhimg/main/${imgBase}/${quizId}/q-${cleanIdx}-image6.jpg`;
+        
+        if (q.solution_image && q.solution_image.trim() !== "") {
+            solImgBox.innerHTML = `<img src="${q.solution_image}" class="sol-img-styled" style="max-width:100%; height:auto;" onerror="this.style.display='none'">`;
+        } else {
+            solImgBox.innerHTML = `<img src="${dynamicSolImg}" class="sol-img-styled" style="max-width:100%; height:auto; display:none;" onload="this.style.display='block'" onerror="this.style.display='none'">`;
+        }
     } else {
         sol.classList.add('hidden');
     }
@@ -479,7 +502,9 @@ function renderQuestion(idx) {
     if(!document.getElementById('inlineEditor').classList.contains('hidden')) {
         document.getElementById('jsonBox').value = JSON.stringify(q, null, 4);
     }
-}
+    }
+    
+
 
     
 
